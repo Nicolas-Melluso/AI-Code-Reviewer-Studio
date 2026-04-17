@@ -6,6 +6,8 @@ Reviewer de codigo con IA orientado a aprender y mejorar rapido:
 - permite aplicar fixes sugeridos con backup automatico
 - incluye CLI interactivo y SPA visual
 
+![alt text](image-1.png)
+
 ## Que puede hacer
 
 1. Analizar un archivo y devolver:
