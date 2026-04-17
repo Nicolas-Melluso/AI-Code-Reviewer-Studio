@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Code Reviewer Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+
+    <header class="topbar">
+      <h1>AI Code Reviewer Studio</h1>
+      <div class="topbar-actions">
+        <span id="health" class="chip muted">checking...</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel controls">
+        <h2>Seleccion</h2>
+        <label>Proyecto</label>
+        <select id="projectSelect"></select>
+
+        <label>Archivo</label>
+        <select id="fileSelect"></select>
+
+        <label>Modelo</label>
+        <input id="modelInput" value="gpt-4o-mini" />
+
+        <div class="actions">
+          <button id="analyzeBtn" class="btn primary">Analizar</button>
+          <button id="refreshBtn" class="btn ghost">Refrescar proyectos</button>
+        </div>
+
+        <p class="hint">
+          El CLI sigue intacto: <code>npm run review -- ../flow-chest/src/flow_chest/actions.py --model gpt-4o</code>
+        </p>
+      </section>
+
+      <section class="panel results">
+        <div class="summary" id="summaryBox">
+          <h2>Resultados</h2>
+          <p class="muted">Todavia no hay analisis.</p>
+        </div>
+
+        <div class="issue-toolbar hidden" id="toolbar">
+          <button class="chip filter on" data-filter="all">Todos</button>
+          <button class="chip filter" data-filter="error">Errores</button>
+          <button class="chip filter" data-filter="warning">Warnings</button>
+          <button class="chip filter" data-filter="suggestion">Sugerencias</button>
+          <button id="applySelectedBtn" class="btn success">Aplicar seleccionados</button>
+        </div>
+
+        <div id="issues" class="issue-list"></div>
+      </section>
+    </main>
+
+    <template id="issueTpl">
+      <article class="issue-card">
+        <div class="issue-head">
+          <label class="check-wrap">
+            <input type="checkbox" class="fix-check" />
+          </label>
+          <div class="issue-meta">
+            <h3 class="issue-title"></h3>
+            <div class="issue-tags"></div>
+          </div>
+        </div>
+        <p class="issue-desc"></p>
+        <details class="diff hidden">
+          <summary>Ver fix propuesto</summary>
+          <div class="diff-grid">
+            <div>
+              <h4>Before</h4>
+              <pre class="before"></pre>
+            </div>
+            <div>
+              <h4>After</h4>
+              <pre class="after"></pre>
+            </div>
+          </div>
+        </details>
+      </article>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

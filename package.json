@@ -1,0 +1,23 @@
+{
+  "name": "ai-code-reviewer",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI-powered code reviewer with one-click auto-fix for junior developers",
+  "scripts": {
+    "review": "tsx src/index.ts",
+    "web": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.0.0",
+    "chalk": "^5.4.1",
+    "express": "^4.21.2",
+    "dotenv": "^16.4.5",
+    "openai": "^4.87.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}
