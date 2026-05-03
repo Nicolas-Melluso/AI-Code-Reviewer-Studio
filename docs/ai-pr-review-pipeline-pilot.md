@@ -88,7 +88,8 @@ AI_REVIEW_MAX_VALIDATION_CHARS: "3000"
 - Detecta posibles secretos antes de llamar al modelo.
 - Publica comentarios utiles y accionables.
 - No genera spam excesivo.
-- No bloquea salvo findings `critical` o fallos reales del pipeline.
+- No bloquea salvo findings `critical`, secretos o fallos reales del pipeline.
+- Si GitHub Models responde con un error transitorio, publica un comentario de skip y permite reintentar.
 - El equipo puede medir falsos positivos, sugerencias aplicadas, costo y latencia.
 
 ## Pendiente para produccion
