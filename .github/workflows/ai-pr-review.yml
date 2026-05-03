@@ -1,0 +1,96 @@
+name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  models: read
+
+concurrency:
+  group: ai-pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  ai-review:
+    name: AI PR Review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    env:
+      AI_REVIEW_MODEL: openai/gpt-4.1
+      AI_REVIEW_MAX_FINDINGS: "12"
+      AI_REVIEW_MIN_SEVERITY: low
+      AI_REVIEW_FAIL_ON: critical
+      AI_REVIEW_MAX_DIFF_CHARS: "12000"
+      AI_REVIEW_MAX_CONTEXT_CHARS: "4000"
+      AI_REVIEW_MAX_VALIDATION_CHARS: "3000"
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Capture validation signals
+        id: validation
+        shell: bash
+        run: |
+          set +e
+          LOG_FILE="ai-review-checks.log"
+          : > "$LOG_FILE"
+          STATUS=0
+
+          run_check() {
+            local name="$1"
+            shift
+            echo "===== ${name} =====" >> "$LOG_FILE"
+            "$@" >> "$LOG_FILE" 2>&1
+            local code=$?
+            echo "exit_code=${code}" >> "$LOG_FILE"
+            echo "" >> "$LOG_FILE"
+            if [ "$code" -ne 0 ]; then
+              STATUS=1
+            fi
+          }
+
+          if [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+              run_check "npm ci" npm ci
+            fi
+            run_check "npm lint" npm run lint --if-present
+            run_check "npm typecheck" npm run typecheck --if-present
+            run_check "npm test" npm test --if-present
+          else
+            echo "No package.json detected. Add project-specific validation steps here." >> "$LOG_FILE"
+          fi
+
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: AI review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          VALIDATION_STATUS: ${{ steps.validation.outputs.status }}
+          VALIDATION_LOG_PATH: ai-review-checks.log
+        run: node scripts/ai-pr-review.mjs
+
+      - name: Fail if project validation failed
+        if: steps.validation.outputs.status != '0'
+        run: |
+          echo "Project validation failed. See ai-review-checks.log and the AI PR review comment."
+          exit 1
