@@ -25,6 +25,9 @@ jobs:
       AI_REVIEW_MAX_FINDINGS: "12"
       AI_REVIEW_MIN_SEVERITY: low
       AI_REVIEW_FAIL_ON: critical
+      AI_REVIEW_MAX_DIFF_CHARS: "12000"
+      AI_REVIEW_MAX_CONTEXT_CHARS: "4000"
+      AI_REVIEW_MAX_VALIDATION_CHARS: "3000"
 
     steps:
       - name: Checkout PR
