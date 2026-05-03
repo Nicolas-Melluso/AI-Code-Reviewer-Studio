@@ -12,6 +12,9 @@ const model = env.AI_REVIEW_MODEL || "openai/gpt-4.1";
 const maxFindings = Number(env.AI_REVIEW_MAX_FINDINGS || 12);
 const minSeverity = env.AI_REVIEW_MIN_SEVERITY || "low";
 const failOn = new Set((env.AI_REVIEW_FAIL_ON || "critical").split(",").map((s) => s.trim()).filter(Boolean));
+const maxDiffChars = Number(env.AI_REVIEW_MAX_DIFF_CHARS || 12000);
+const maxContextChars = Number(env.AI_REVIEW_MAX_CONTEXT_CHARS || 4000);
+const maxValidationChars = Number(env.AI_REVIEW_MAX_VALIDATION_CHARS || 3000);
 const range = `${baseSha}...${headSha}`;
 
 const severities = ["nit", "low", "medium", "high", "critical"];
@@ -38,8 +41,8 @@ async function main() {
 
   const reviewableFiles = changedFiles.filter(isReviewablePath);
   const filteredDiff = filterDiffByPath(rawDiff, new Set(reviewableFiles));
-  const projectContext = collectProjectContext(reviewableFiles);
-  const validationLog = readText(env.VALIDATION_LOG_PATH, 12000);
+  const projectContext = collectProjectContext(reviewableFiles, maxContextChars);
+  const validationLog = readText(env.VALIDATION_LOG_PATH, maxValidationChars);
 
   if (!filteredDiff.trim()) {
     await upsertIssueComment(
@@ -55,7 +58,7 @@ async function main() {
   }
 
   const review = await requestModelReview({
-    diff: truncate(filteredDiff, 160000),
+    diff: truncate(filteredDiff, maxDiffChars),
     projectContext,
     validationLog,
     changedFiles: reviewableFiles,
@@ -106,7 +109,7 @@ function isReviewablePath(filePath) {
   return !blocked.some((pattern) => pattern.test(normalized));
 }
 
-function collectProjectContext(changedFiles) {
+function collectProjectContext(changedFiles, maxChars) {
   const projectFiles = [
     "README.md",
     "AGENTS.md",
@@ -122,13 +125,13 @@ function collectProjectContext(changedFiles) {
 
   const sections = [];
   for (const file of projectFiles) {
-    const content = readText(file, 10000);
+    const content = readText(file, 2000);
     if (content) sections.push(`### ${file}\n${content}`);
   }
 
   const changedSnapshots = [];
-  for (const file of changedFiles.slice(0, 12)) {
-    const content = readRepoFile(file, 12000);
+  for (const file of changedFiles.slice(0, 4)) {
+    const content = readRepoFile(file, 2000);
     if (content) changedSnapshots.push(`### ${file}\n${content}`);
   }
 
@@ -137,7 +140,7 @@ function collectProjectContext(changedFiles) {
     sections.join("\n\n") || "No repository metadata files detected.",
     "## Changed file snapshots",
     changedSnapshots.join("\n\n") || "No changed file snapshots available.",
-  ].join("\n\n"), 90000);
+  ].join("\n\n"), maxChars);
 }
 
 async function requestModelReview({ diff, projectContext, validationLog, changedFiles }) {
