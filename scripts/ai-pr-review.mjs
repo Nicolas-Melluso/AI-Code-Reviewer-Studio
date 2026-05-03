@@ -57,12 +57,21 @@ async function main() {
     return;
   }
 
-  const review = await requestModelReview({
-    diff: truncate(filteredDiff, maxDiffChars),
-    projectContext,
-    validationLog,
-    changedFiles: reviewableFiles,
-  });
+  let review;
+  try {
+    review = await requestModelReview({
+      diff: truncate(filteredDiff, maxDiffChars),
+      projectContext,
+      validationLog,
+      changedFiles: reviewableFiles,
+    });
+  } catch (error) {
+    await upsertIssueComment(
+      "<!-- ai-pr-review:summary -->",
+      renderModelUnavailableBlock(error),
+    );
+    return;
+  }
 
   const findings = normalizeFindings(review.findings || [], lineMap, reviewableFiles)
     .filter((finding) => severityRank(finding.severity) >= severityRank(minSeverity))
@@ -287,6 +296,19 @@ function renderReviewBody(summary, findings, inlineCount) {
       `  ${finding.body}`,
     ].join("\n")),
   ].filter(Boolean).join("\n");
+}
+
+function renderModelUnavailableBlock(error) {
+  return [
+    "<!-- ai-pr-review:summary -->",
+    "## AI PR Review skipped",
+    "",
+    "The deterministic checks ran, but the model provider was not available for this execution.",
+    "",
+    `Reason: ${String(error.message || error).slice(0, 1000)}`,
+    "",
+    "Push a new commit or rerun the workflow to retry the AI review.",
+  ].join("\n");
 }
 
 async function createPullRequestReview(body, comments) {
